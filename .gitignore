@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (credenciales de la BD)
+.env
+.env.local
+
+# Datos runtime / generados
+backend/data/*.sqlite
+backend/data/layout.json
+
+# Build del frontend
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

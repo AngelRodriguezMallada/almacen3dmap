@@ -1,0 +1,25 @@
+[Unit]
+Description=Almacen 3D - API backend (Node.js/Express)
+After=network.target
+
+[Service]
+Type=simple
+# Ajusta la ruta si instalas la app en otro directorio
+WorkingDirectory=/opt/almacen3d/backend
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+User=almacen3d
+Group=almacen3d
+EnvironmentFile=/opt/almacen3d/backend/.env
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=almacen3d-backend
+
+# Endurecimiento basico del servicio
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
