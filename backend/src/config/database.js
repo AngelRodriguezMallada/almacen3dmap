@@ -18,12 +18,11 @@ if (dialect === 'mssql') {
     if (!instanceName) instanceName = inst;
   }
 
-  // Dos modos de conexion a una instancia con nombre:
-  //   - MSSQL_USE_INSTANCE=true  -> resuelve el puerto via SQL Browser (UDP 1434).
-  //                                 Requiere el servicio "SQL Server Browser" y el UDP 1434 abierto.
-  //   - por defecto (false)      -> conecta por host + puerto TCP fijo (MSSQL_PORT, 1433).
-  //                                 Requiere que la instancia escuche en ese puerto estatico.
-  const useInstance = process.env.MSSQL_USE_INSTANCE === 'true' && !!instanceName;
+  // Conexion a una instancia con nombre (como el DSN de PHP: Server=host\instancia):
+  //   - Si hay instancia -> se resuelve el puerto via SQL Server Browser (UDP 1434).
+  //     Es el modo por defecto (igual que la app PHP que ya funciona).
+  //   - Para forzar puerto TCP fijo en su lugar: MSSQL_USE_INSTANCE=false + MSSQL_PORT.
+  const useInstance = !!instanceName && process.env.MSSQL_USE_INSTANCE !== 'false';
 
   const options = {
     encrypt: process.env.MSSQL_ENCRYPT !== 'false',
