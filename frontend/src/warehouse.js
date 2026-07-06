@@ -8,10 +8,9 @@
 
 export const CELL = { w: 1.0, h: 0.6, d: 1.2 };
 
-const WALKWAY = 3.0;   // pasillo de paso entre los dos lados
-const RACK_GAP = 1.4;  // separacion entre racks a lo largo del pasillo
-const AISLE_GAP = 2.0; // separacion extra entre pasillos
-const ZONE_GAP = 7.0;  // separacion entre zonas
+const AISLE_X = 2.5;  // pasillo de paso entre carriles (a lo ancho de la nave)
+const BAY_GAP = 0.2;  // separacion entre racks de un mismo carril (hacia el fondo)
+const ZONE_GAP = 8.0; // separacion entre zonas
 
 export function parseCode(code) {
   const c = String(code == null ? '' : code).trim();
@@ -85,8 +84,8 @@ export function buildRacks(ubicaciones, overrides = {}) {
 
   const maxWidth = Math.max(1, ...racks.map((r) => r.width));
   const maxDepth = Math.max(1, ...racks.map((r) => r.depth));
-  const rackPitchX = maxWidth + RACK_GAP;
-  const aislePitchZ = 2 * maxDepth + WALKWAY + AISLE_GAP;
+  const laneW = maxWidth + AISLE_X; // ancho de carril = rack + pasillo de paso
+  const bayZ = maxDepth + BAY_GAP;  // avance de cada rack hacia el fondo
 
   // Posicion local dentro de cada zona + bounding box de la zona.
   const byZona = new Map();
@@ -97,17 +96,18 @@ export function buildRacks(ubicaciones, overrides = {}) {
 
   const zonaBlocks = [];
   for (const [zona, zracks] of byZona) {
-    const pasillos = [...new Set(zracks.map((r) => r.pasillo))].sort();
+    // Un carril = pasillo+lado. Se ordenan de izquierda a derecha por (pasillo, lado):
+    // PKD11, PKD12, PKD21, PKD22, ... Dentro del carril los racks avanzan hacia el fondo.
+    const laneKeys = [...new Set(zracks.map((r) => r.pasillo + r.lado))].sort();
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
 
     for (const r of zracks) {
-      const pIdx = pasillos.indexOf(r.pasillo);
-      const rackNums = [...new Set(zracks.filter((x) => x.pasillo === r.pasillo).map((x) => x.rack))].sort();
-      const rIdx = rackNums.indexOf(r.rack);
-      const ladoSign = r.lado === '2' ? 1 : -1;
+      const laneIdx = laneKeys.indexOf(r.pasillo + r.lado);
+      const bays = [...new Set(zracks.filter((x) => x.pasillo === r.pasillo && x.lado === r.lado).map((x) => x.rack))].sort();
+      const bayIdx = bays.indexOf(r.rack);
 
-      r._localX = rIdx * rackPitchX;
-      r._localZ = pIdx * aislePitchZ + ladoSign * (WALKWAY / 2 + maxDepth / 2);
+      r._localX = laneIdx * laneW;
+      r._localZ = bayIdx * bayZ;
 
       minX = Math.min(minX, r._localX - r.width / 2);
       maxX = Math.max(maxX, r._localX + r.width / 2);
