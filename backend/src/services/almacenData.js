@@ -25,16 +25,15 @@ async function queryUbicaciones() {
 }
 
 async function queryOcupacion() {
-  // zadm_productos (b) no tiene columna 'almacen' (solo 'entidad'); por eso el join
-  // se hace por producto + entidad y el filtro de almacen se aplica solo sobre 'a'.
+  // entidad y almacen viven en ZALM_ALMACEN_OCUPADO (a), no en zadm_productos (b).
+  // El join a productos se hace solo por 'producto'; el filtro entidad/almacen va sobre 'a'.
   return sequelize.query(
     `SELECT a.Estadistico_almacen AS code,
             a.producto            AS producto,
             b.descripcion         AS descripcion,
             a.cantidad_unidad_venta AS cantidad
        FROM ZALM_ALMACEN_OCUPADO a
-       LEFT JOIN zadm_productos b
-         ON (a.producto = b.producto AND a.entidad = b.entidad)
+       LEFT JOIN zadm_productos b ON (a.producto = b.producto)
       WHERE a.almacen = :almacen
         AND a.entidad = :entidad`,
     { replacements: { entidad: ENTIDAD, almacen: ALMACEN }, type: QueryTypes.SELECT }
