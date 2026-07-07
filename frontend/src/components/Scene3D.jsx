@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid, TransformControls } from '@react-three/drei';
 import RackMesh from './RackMesh';
 
-export default function Scene3D({ racks, meta, selectedRackId, selectedCode, dimmedRackIds, onSelectCell, onSelectRack, onDeselect, onMoveRack, editMode }) {
+export default function Scene3D({ racks, meta, selectedRackId, selectedCode, dimmedRackIds, litCells, onSelectCell, onSelectRack, onDeselect, onMoveRack, editMode }) {
   const [selectedNode, setSelectedNode] = useState(null);
 
   const selectedRef = useCallback((node) => {
@@ -44,6 +44,7 @@ export default function Scene3D({ racks, meta, selectedRackId, selectedCode, dim
           rack={rack}
           selectedRackId={selectedRackId}
           selectedCode={selectedCode}
+          litCells={litCells}
           dimmed={dimmedRackIds ? !dimmedRackIds.has(rack.rackId) : false}
           onSelectCell={onSelectCell}
         />

@@ -2,8 +2,10 @@ import React, { forwardRef } from 'react';
 import { Edges, Text, Billboard } from '@react-three/drei';
 import { rackLabel } from '../warehouse';
 
+const HILITE = '#22d3ee'; // color de iluminacion al buscar producto
+
 const RackMesh = forwardRef(function RackMesh(
-  { rack, selectedRackId, selectedCode, dimmed, onSelectCell },
+  { rack, selectedRackId, selectedCode, litCells, dimmed, onSelectCell },
   ref
 ) {
   const { posX, posY, posZ, rotationY, width, height, depth, huecos, alturas, cells, rackId, totalCantidad, lineas, zonaType } = rack;
@@ -12,6 +14,7 @@ const RackMesh = forwardRef(function RackMesh(
   const accent = ACCENT[zonaType] || ACCENT.rack;
 
   const selectedRack = rackId === selectedRackId;
+  const rackHasLit = litCells ? cells.some((c) => litCells.has(c.code)) : false;
   const cellW = width / huecos.length;
   const cellH = height / alturas.length;
 
@@ -24,18 +27,19 @@ const RackMesh = forwardRef(function RackMesh(
       position={[posX, posY, posZ]}
       rotation={[0, rotationY || 0, 0]}
     >
-      {/* Marco del rack (color segun tipo de zona) */}
+      {/* Marco del rack (color segun tipo de zona; cian si contiene el producto buscado) */}
       <mesh>
         <boxGeometry args={[width + 0.08, height + 0.08, depth + 0.08]} />
         <meshStandardMaterial color="#0e1116" transparent opacity={dimmed ? 0.08 : 0.18} />
-        <Edges color={selectedRack ? '#ffffff' : accent} />
+        <Edges color={selectedRack ? '#ffffff' : rackHasLit ? HILITE : accent} />
       </mesh>
 
       {/* Celdas: cada hueco x altura */}
       {cells.map((c) => {
         const hasStock = (c.totalCantidad || 0) > 0;
         const isSel = c.code === selectedCode;
-        const color = isSel ? '#ffcc00' : hasStock ? '#2f855a' : '#2a3340';
+        const lit = litCells ? litCells.has(c.code) : false;
+        const color = isSel ? '#ffcc00' : lit ? HILITE : hasStock ? '#2f855a' : '#2a3340';
         const x = -width / 2 + cellW * (c.huecoIndex + 0.5);
         const y = -height / 2 + cellH * (c.alturaIndex + 0.5);
         return (
@@ -51,10 +55,12 @@ const RackMesh = forwardRef(function RackMesh(
             <boxGeometry args={[cellW * 0.88, cellH * 0.82, depth * 0.9]} />
             <meshStandardMaterial
               color={color}
+              emissive={lit ? HILITE : '#000000'}
+              emissiveIntensity={lit ? 0.9 : 0}
               transparent
-              opacity={dimmed ? 0.3 : hasStock || isSel ? 0.92 : 0.5}
+              opacity={dimmed && !lit ? 0.3 : hasStock || isSel || lit ? 0.95 : 0.5}
             />
-            {isSel && <Edges color="#ffffff" />}
+            {(isSel || lit) && <Edges color="#ffffff" />}
           </mesh>
         );
       })}

@@ -12,6 +12,7 @@ export default function App() {
   const [selectedRackId, setSelectedRackId] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [query, setQuery] = useState('');
+  const [productQuery, setProductQuery] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +85,45 @@ export default function App() {
     return set;
   }, [q, racks]);
 
+  // Busqueda por PRODUCTO (codigo o descripcion): ilumina los huecos que lo contienen.
+  const pq = productQuery.trim().toLowerCase();
+  const productMatch = useMemo(() => {
+    if (!pq) return null;
+    const rackIds = new Set();
+    const cellCodes = new Set();
+    let unidades = 0;
+    let lineas = 0;
+    for (const r of racks) {
+      let rackHas = false;
+      for (const c of r.cells) {
+        const hits = (c.productos || []).filter(
+          (p) =>
+            String(p.producto).toLowerCase().includes(pq) ||
+            String(p.descripcion || '').toLowerCase().includes(pq)
+        );
+        if (hits.length) {
+          cellCodes.add(c.code);
+          rackHas = true;
+          lineas += hits.length;
+          unidades += hits.reduce((s, p) => s + (p.cantidad || 0), 0);
+        }
+      }
+      if (rackHas) rackIds.add(r.rackId);
+    }
+    return { rackIds, cellCodes, unidades, lineas };
+  }, [pq, racks]);
+
+  // Combina ambos filtros (interseccion) para atenuar lo que no cumple.
+  const dimmedRackIds = useMemo(() => {
+    const sets = [];
+    if (matchRackIds) sets.push(matchRackIds);
+    if (productMatch) sets.push(productMatch.rackIds);
+    if (!sets.length) return null;
+    return new Set([...sets[0]].filter((id) => sets.every((s) => s.has(id))));
+  }, [matchRackIds, productMatch]);
+
+  const litCells = productMatch ? productMatch.cellCodes : null;
+
   const totals = useMemo(() => {
     const conStock = racks.filter((r) => r.totalCantidad > 0).length;
     const unidades = racks.reduce((s, r) => s + (r.totalCantidad || 0), 0);
@@ -91,7 +131,7 @@ export default function App() {
     return { conStock, vacios: racks.length - conStock, unidades, huecos };
   }, [racks]);
 
-  const listedRacks = matchRackIds ? racks.filter((r) => matchRackIds.has(r.rackId)) : racks;
+  const listedRacks = dimmedRackIds ? racks.filter((r) => dimmedRackIds.has(r.rackId)) : racks;
 
   if (error) {
     return (
@@ -120,6 +160,12 @@ export default function App() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            <input
+              className="search product"
+              placeholder="Buscar producto (ilumina)..."
+              value={productQuery}
+              onChange={(e) => setProductQuery(e.target.value)}
+            />
             <button className="btn secondary" onClick={() => setEditMode((v) => !v)}>
               {editMode ? 'Mover racks: ON' : 'Mover racks: OFF'}
             </button>
@@ -135,13 +181,27 @@ export default function App() {
             meta={meta}
             selectedRackId={selectedRackId}
             selectedCode={selectedCode}
-            dimmedRackIds={matchRackIds}
+            dimmedRackIds={dimmedRackIds}
+            litCells={litCells}
             onSelectCell={selectCell}
             onSelectRack={selectRack}
             onDeselect={deselect}
             onMoveRack={handleMoveRack}
             editMode={editMode}
           />
+        )}
+
+        {productMatch && (
+          <div className="product-result">
+            {productMatch.cellCodes.size > 0 ? (
+              <>
+                <i className="sw" style={{ background: '#22d3ee' }} />
+                <b>«{productQuery.trim()}»</b>: {productMatch.cellCodes.size} huecos en {productMatch.rackIds.size} racks · {productMatch.unidades} uds
+              </>
+            ) : (
+              <>Sin resultados para «{productQuery.trim()}»</>
+            )}
+          </div>
         )}
 
         <div className="legend">
